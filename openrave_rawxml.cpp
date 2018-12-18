@@ -25,28 +25,44 @@ namespace OpenRAVE {
 	namespace xmlreaders {
 		class OPENRAVE_API XMLTransfer : public BaseXMLReader
 		{
-			std::vector<BaseXMLWriterPtr> st;
+			std::vector<BaseXMLWriterPtr> stwriter;
+			std::vector<std::string> sttag;
 			public:
-			XMLTransfer(BaseXMLWriterPtr writer){st.push_back(writer);}
+			XMLTransfer(BaseXMLWriterPtr writer){stwriter.push_back(writer);}
 			virtual ProcessElement startElement(const std::string& xmlname_orig, const AttributesList& atts)
 			{
 				std::string xmlname;
 				xmlname.resize(xmlname_orig.size());
-				std::transform(xmlname_orig.cbegin(), xmlname_orig.cend(), xmlname.begin(), toupper);
+				std::transform(xmlname_orig.begin(), xmlname_orig.end(), xmlname.begin(), toupper);
 
-				if(xmlname!="XMLTRANSFER_DUMMY_TOP")st.push_back(st.back()->AddChild(xmlname_orig,atts));
+				if(xmlname!="XMLTRANSFER_ARRAY_TOP"){
+					stwriter.push_back(stwriter.back()->AddChild(xmlname_orig,atts));
+					sttag.push_back(xmlname_orig);
+				}
 				return PE_Support;
 			}
 
-			virtual bool endElement(const std::string& xmlname)
+			virtual bool endElement(const std::string& xmlname_orig)
 			{
-				st.pop_back();
+				std::string xmlname;
+				xmlname.resize(xmlname_orig.size());
+				std::transform(xmlname_orig.begin(), xmlname_orig.end(), xmlname.begin(), toupper);
+
+				if(stwriter.empty()||sttag.empty()||sttag.back()!=xmlname){
+					// todo error
+				}
+				sttag.pop_back();
+				stwriter.pop_back();
 				return false;
 			}
 
 			virtual void characters(const std::string& ch)
 			{
-				st.back()->SetCharData(ch);
+				int i=0;
+				for(;i<ch.size();i++){
+					if(ch[i]!=' '&&ch[i]!='\n'&&ch[i]!='\r'&&ch[i]!='\t')break;
+				}
+				if(i<ch.size())stwriter.back()->SetCharData(ch);
 			}
 		};
 		typedef boost::shared_ptr<OpenRAVE::xmlreaders::XMLTransfer> XMLTransferPtr;
@@ -71,7 +87,7 @@ namespace OpenRAVE {
 					writer = child->AddChild("technique",atts);
 				}
 				XMLTransfer trans(writer);
-				std::string data = std::string("<XMLTRANSFER_DUMMY_TOP>")+_data+"</XMLTRANSFER_DUMMY_TOP>";
+				std::string data = std::string("<XMLTRANSFER_ARRAY_TOP>")+_data+"</XMLTRANSFER_ARRAY_TOP>";
 				LocalXML::ParseXMLData(trans,data.c_str(),data.size());
 			}
 		};
