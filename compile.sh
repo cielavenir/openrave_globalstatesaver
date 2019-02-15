@@ -1,13 +1,19 @@
 #!/bin/bash
+if [ "$PREFIX" == "" ]; then
+    echo 'Give me PREFIX variable (usually /usr)'
+    exit 1
+fi
+
 Entries=$(perl -M5.010 -e 'opendir(my $dh,$ENV{"PREFIX"}."/include");for $name(grep {/^openrave/} readdir($dh)){say $name};')
 if [ "$Entries" == "" -o $(<<<$Entries wc -l) -ge 2 ]; then
     echo 'Multiple (or No) openrave installations found'
     cat <<<$Entries
-    exit
+    exit 1
 fi
 
 OPENRAVE_DIR=$(<<<${Entries} tr -d -- "\n") # openrave-0.11
 OPENRAVE_PYDIR="_"$(<<<${OPENRAVE_DIR} sed -e s/openrave/openravepy/ | tr -- "-." "__") # _openravepy_0_11
+
 g++ -std=c++98 -O2 -fPIC -shared -o openrave_rawxml.so \
 -I ${PREFIX}/include/${OPENRAVE_DIR} -I ${PREFIX}/include -I /usr/include/python2.7 -I /usr/include/libxml2 \
 openrave_rawxml.cpp parsexml.cpp \
