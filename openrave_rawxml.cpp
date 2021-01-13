@@ -14,6 +14,7 @@
 
 #include <openrave/openrave.h>
 #include <openrave/xmlreaders.h>
+#include <openrave/openravejson.h>
 #include <boost/python.hpp>
 #include <string>
 #include <sstream>
@@ -23,6 +24,7 @@
 std::vector<OpenRAVE::UserDataPtr> vRegisteredReaders;
 
 namespace OpenRAVE {
+	/// XML ///
 	namespace LocalXML {
 		bool ParseXMLData(OpenRAVE::BaseXMLReader& reader, const char* buffer, int size);
 	}
@@ -115,15 +117,15 @@ namespace OpenRAVE {
 		};
 		typedef boost::shared_ptr<OpenRAVE::xmlreaders::XMLTransfer> XMLTransferPtr;
 
-		class OPENRAVE_API RawXMLReadable : public XMLReadable
+		class OPENRAVE_API RawXMLReadable : public Readable
 		{
 			std::string _data;
 			std::string _profile;
 			public:
-			RawXMLReadable(const std::string& xmlid, const std::string& data, const std::string& profile="OpenRAVE") : XMLReadable(xmlid), _data(data), _profile(profile)
+			RawXMLReadable(const std::string& xmlid, const std::string& data, const std::string& profile="OpenRAVE") : Readable(xmlid), _data(data), _profile(profile)
 			{
 			}
-			void Serialize(BaseXMLWriterPtr writer, int options) const
+			bool SerializeXML(BaseXMLWriterPtr writer, int options) const
 			{
 				if( writer->GetFormat() == "collada" ) {
 					AttributesList atts;
@@ -137,6 +139,15 @@ namespace OpenRAVE {
 				XMLTransfer trans(writer);
 				std::string data = std::string("<XMLTRANSFER_ARRAY_TOP>")+_data+"</XMLTRANSFER_ARRAY_TOP>";
 				LocalXML::ParseXMLData(trans,data.c_str(),data.size());
+				return true;
+			}
+			bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
+			{
+				return false;
+			}
+			bool DeserializeJSON(const rapidjson::Value& value, dReal fUnitScale)
+			{
+				return false;
 			}
 		};
 		typedef boost::shared_ptr<OpenRAVE::xmlreaders::RawXMLReadable> RawXMLReadablePtr;
@@ -182,7 +193,7 @@ namespace OpenRAVE {
 				return XMLTransfer::endElement(xmlname_orig);
 			}
 
-			virtual XMLReadablePtr GetReadable() {
+			virtual ReadablePtr GetReadable() {
 				std::ostringstream ss;
 				streamwriter->Serialize(ss);
 				return RawXMLReadablePtr(new RawXMLReadable(xmlid,ss.str(),profile));
@@ -191,35 +202,98 @@ namespace OpenRAVE {
 		typedef boost::shared_ptr<OpenRAVE::xmlreaders::XMLTransferStreamSerialize> XMLTransferStreamSerializePtr;
 
 		// not OPENRAVE_API
-		class ExtraFieldAcceptorFactory
+		class XMLExtraFieldAcceptorFactory
 		{
 			const std::string xmlid;
 			public:
-			ExtraFieldAcceptorFactory(const std::string& _xmlid) : xmlid(_xmlid) {}
+			XMLExtraFieldAcceptorFactory(const std::string& _xmlid) : xmlid(_xmlid) {}
 			BaseXMLReaderPtr operator() (InterfaceBasePtr ptr, const AttributesList& atts) {
 				StreamXMLWriterLessSerializePtr writer(new StreamXMLWriterLessSerialize("",atts)); // not xmlid
 				return XMLTransferStreamSerializePtr(new XMLTransferStreamSerialize(writer,xmlid));
 			}
 		};
+	}
 
-		void OPENRAVE_API AcceptExtraField(InterfaceType type, const std::string& xmlid){
-			::vRegisteredReaders.push_back(RaveRegisterXMLReader(type,xmlid,ExtraFieldAcceptorFactory(xmlid)));
+	/// JSON ///
+	class OPENRAVE_API RawJSONReadable : public Readable
+	{
+		std::string _data;
+		std::string _profile;
+		public:
+		RawJSONReadable(const std::string& xmlid, const std::string& data, const std::string& profile="OpenRAVE") : Readable(xmlid), _data(data), _profile(profile)
+		{
 		}
+		RawJSONReadable(const std::string& xmlid) : Readable(xmlid), _data(""), _profile("OpenRAVE")
+		{
+		}
+		bool SerializeXML(BaseXMLWriterPtr writer, int options) const
+		{
+			return false;
+		}
+		bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
+		{
+			rapidjson::Document doc;
+			value.SetObject();
+			orjson::ParseJson(doc,_data);
+			value.Swap(doc);
+			return true;
+		}
+		bool DeserializeJSON(const rapidjson::Value& value, dReal fUnitScale)
+		{
+			_data = orjson::DumpJson(value);
+			return true;
+		}
+	};
+	typedef boost::shared_ptr<OpenRAVE::RawJSONReadable> RawJSONReadablePtr;
+
+	// not OPENRAVE_API
+	class JSONTransfer : public BaseJSONReader
+	{
+		std::string _xmlid;
+		public:
+		JSONTransfer(const std::string &xmlid) : _xmlid(xmlid)
+		{
+		}
+		virtual ReadablePtr GetReadable() {
+			return RawJSONReadablePtr(new RawJSONReadable(_xmlid));
+		}
+	};
+	typedef boost::shared_ptr<OpenRAVE::JSONTransfer> JSONTransferPtr;
+
+	// not OPENRAVE_API
+	class JSONExtraFieldAcceptorFactory
+	{
+		const std::string xmlid;
+		public:
+		JSONExtraFieldAcceptorFactory(const std::string& _xmlid) : xmlid(_xmlid) {}
+		BaseJSONReaderPtr operator() (ReadablePtr ptr, const AttributesList& atts) {
+			return JSONTransferPtr(new JSONTransfer(xmlid));
+		}
+	};
+
+	void OPENRAVE_API AcceptExtraField(InterfaceType type, const std::string& xmlid){
+		::vRegisteredReaders.push_back(RaveRegisterXMLReader(type,xmlid,xmlreaders::XMLExtraFieldAcceptorFactory(xmlid)));
+		::vRegisteredReaders.push_back(RaveRegisterJSONReader(type,xmlid,JSONExtraFieldAcceptorFactory(xmlid)));
 	}
 }
 
 using namespace boost::python;
-typedef boost::shared_ptr<OpenRAVE::XMLReadable> XMLReadablePtr;
+typedef boost::shared_ptr<OpenRAVE::Readable> ReadablePtr;
 namespace openravepy {
-	object toPyXMLReadable(XMLReadablePtr p);
+	object toPyReadable(ReadablePtr p);
 	object pyCreateRawXMLReadable(const std::string& xmlid, const std::string& data, const std::string& profile="OpenRAVE")
 	{
-		return toPyXMLReadable(XMLReadablePtr(new OpenRAVE::xmlreaders::RawXMLReadable(xmlid, data, profile)));
+		return toPyReadable(ReadablePtr(new OpenRAVE::xmlreaders::RawXMLReadable(xmlid, data, profile)));
+	}
+	object pyCreateRawJSONReadable(const std::string& xmlid, const std::string& data, const std::string& profile="OpenRAVE")
+	{
+		return toPyReadable(ReadablePtr(new OpenRAVE::RawJSONReadable(xmlid, data, profile)));
 	}
 
 	BOOST_PYTHON_MODULE(openrave_rawxml)
 	{
 		def("CreateRawXMLReadable",pyCreateRawXMLReadable, args("xmlid", "data", "profile"));
-		def("AcceptExtraField",OpenRAVE::xmlreaders::AcceptExtraField, args("type", "xmlid"));
+		def("CreateRawJSONReadable",pyCreateRawJSONReadable, args("xmlid", "data", "profile"));
+		def("AcceptExtraField",OpenRAVE::AcceptExtraField, args("type", "xmlid"));
 	}
 }
