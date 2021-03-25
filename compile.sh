@@ -24,8 +24,9 @@ if [ $? -ne 0 ]; then
     PYTHON_LIBS=$($PYTHON-config --libs)
 fi
 
-# sorry for now manually comment out this if building pybind11 version
-PYTHON_BINDING_LIBS="-lboost_python"
+if ! grep -F '#define USE_PYBIND11_PYTHON_BINDINGS' ${PREFIX}/include/${OPENRAVE_DIR}/openravepy/openravepy_config.h >/dev/null; then
+   PYTHON_BINDING_LIBS="-lboost_python"
+fi
 
 g++ -std=gnu++11 -O2 -fPIC -shared -o openrave_rawxml.so \
 -I ${PREFIX}/include/${OPENRAVE_DIR} -I ${PREFIX}/include $(${PYTHON}-config --includes) -I /usr/include/libxml2 \
