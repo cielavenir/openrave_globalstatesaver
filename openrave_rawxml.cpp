@@ -123,7 +123,7 @@ namespace OpenRAVE {
 			RawXMLReadable(const std::string& xmlid, const std::string& data, const std::string& profile="OpenRAVE") : Readable(xmlid), _data(data), _profile(profile)
 			{
 			}
-			bool SerializeXML(BaseXMLWriterPtr writer, int options) const
+			virtual bool SerializeXML(BaseXMLWriterPtr writer, int options) const
 			{
 				if( writer->GetFormat() == "collada" ) {
 					AttributesList atts;
@@ -139,13 +139,23 @@ namespace OpenRAVE {
 				LocalXML::ParseXMLData(trans,data.c_str(),data.size());
 				return true;
 			}
-			bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
+			virtual bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
 			{
 				return false;
 			}
-			bool DeserializeJSON(const rapidjson::Value& value, dReal fUnitScale)
+			virtual bool DeserializeJSON(const rapidjson::Value& value, dReal fUnitScale)
 			{
 				return false;
+			}
+			virtual bool operator==(const Readable& other)
+			{
+				return this == &other;
+			}
+			virtual ReadablePtr CloneSelf() const
+			{
+				boost::shared_ptr<RawXMLReadable> pNew(new RawXMLReadable(GetXMLId(), _data, _profile));
+				*pNew = *this;
+				return pNew;
 			}
 		};
 		typedef boost::shared_ptr<OpenRAVE::xmlreaders::RawXMLReadable> RawXMLReadablePtr;
@@ -224,15 +234,15 @@ namespace OpenRAVE {
 		RawJSONReadable(const std::string& xmlid) : Readable(xmlid), _data("")
 		{
 		}
-		~RawJSONReadable()
+		virtual ~RawJSONReadable()
 		{
 			_docs.clear();
 		}
-		bool SerializeXML(BaseXMLWriterPtr writer, int options) const
+		virtual bool SerializeXML(BaseXMLWriterPtr writer, int options) const
 		{
 			return false;
 		}
-		bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
+		virtual bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
 		{
 			{
 				// todo properly parse using "allocator" argument
@@ -246,10 +256,21 @@ namespace OpenRAVE {
 			// puts(orjson::DumpJson(value).c_str());
 			return true;
 		}
-		bool DeserializeJSON(const rapidjson::Value& value, dReal fUnitScale)
+		virtual bool DeserializeJSON(const rapidjson::Value& value, dReal fUnitScale)
 		{
 			_data = orjson::DumpJson(value);
 			return true;
+		}
+		virtual bool operator==(const Readable& other)
+		{
+			return this == &other;
+		}
+		virtual ReadablePtr CloneSelf() const
+		{
+			/// please do not use this ///
+			boost::shared_ptr<RawJSONReadable> pNew(new RawJSONReadable(GetXMLId(), _data));
+			//*pNew = *this;
+			return pNew;
 		}
 	};
 	typedef boost::shared_ptr<OpenRAVE::RawJSONReadable> RawJSONReadablePtr;
