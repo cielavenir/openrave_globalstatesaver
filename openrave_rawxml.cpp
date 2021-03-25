@@ -19,6 +19,9 @@
 #include <sstream>
 #include <vector>
 
+#include <boost/shared_ptr.hpp>
+typedef boost::shared_ptr<OpenRAVE::Readable> ReadablePtr;
+
 std::vector<OpenRAVE::UserDataPtr> vRegisteredReaders;
 
 namespace OpenRAVE {
@@ -147,10 +150,15 @@ namespace OpenRAVE {
 			{
 				return false;
 			}
-			virtual bool operator==(const Readable& other)
+			virtual bool operator==(const Readable& other) const
 			{
+				// pointer value
 				return this == &other;
 			}
+                        virtual bool operator==(const Readable& other)
+                        {
+                                return *this == other;
+                        }
 			virtual ReadablePtr CloneSelf() const
 			{
 				boost::shared_ptr<RawXMLReadable> pNew(new RawXMLReadable(GetXMLId(), _data, _profile));
@@ -261,9 +269,14 @@ namespace OpenRAVE {
 			_data = orjson::DumpJson(value);
 			return true;
 		}
+		virtual bool operator==(const Readable& other) const
+		{
+			// pointer value
+			return this == &other;
+		}
 		virtual bool operator==(const Readable& other)
 		{
-			return this == &other;
+			return *this == other;
 		}
 		virtual ReadablePtr CloneSelf() const
 		{
@@ -305,9 +318,6 @@ namespace OpenRAVE {
 		::vRegisteredReaders.push_back(RaveRegisterJSONReader(type,xmlid,JSONExtraFieldAcceptorFactory(xmlid)));
 	}
 }
-
-#include <boost/shared_ptr.hpp>
-typedef boost::shared_ptr<OpenRAVE::Readable> ReadablePtr;
 
 #include <openravepy/openravepy_config.h>
 #ifdef USE_PYBIND11_PYTHON_BINDINGS
