@@ -235,17 +235,12 @@ namespace OpenRAVE {
 	class OPENRAVE_API RawJSONReadable : public Readable
 	{
 		std::string _data;
-		mutable std::vector<rapidjson::Document> _docs;
 		public:
 		RawJSONReadable(const std::string& xmlid, const std::string& data) : Readable(xmlid), _data(data)
 		{
 		}
 		RawJSONReadable(const std::string& xmlid) : Readable(xmlid), _data("")
 		{
-		}
-		virtual ~RawJSONReadable()
-		{
-			_docs.clear();
 		}
 		virtual bool SerializeXML(BaseXMLWriterPtr writer, int options) const
 		{
@@ -254,13 +249,9 @@ namespace OpenRAVE {
 		virtual bool SerializeJSON(rapidjson::Value& value, rapidjson::Document::AllocatorType& allocator, dReal fUnitScale, int options) const
 		{
 			{
-				// todo properly parse using "allocator" argument
-				_docs.push_back(rapidjson::Document());
-				rapidjson::Document &doc = _docs.back();
+				rapidjson::Document doc;
 				orjson::ParseJson(doc,_data);
-				value.Swap(doc);
-				// puts(orjson::DumpJson(value).c_str());
-				// _docs.clear(); // todo this line causes memory corruption //
+				value.CopyFrom(doc, allocator);
 			}
 			// puts(orjson::DumpJson(value).c_str());
 			return true;
