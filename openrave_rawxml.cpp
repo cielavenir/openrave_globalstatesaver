@@ -251,6 +251,7 @@ namespace OpenRAVE {
 			{
 				rapidjson::Document doc;
 				orjson::ParseJson(doc,_data);
+				// we assume value is empty (otherwise old value content will simply leak)
 				value.CopyFrom(doc, allocator);
 			}
 			// puts(orjson::DumpJson(value).c_str());
