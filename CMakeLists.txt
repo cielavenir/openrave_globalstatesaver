@@ -13,6 +13,9 @@ execute_process(
 )
 find_file(OPENRAVEPY_INT_SO_FILE openravepy_int.so PATHS ${CMAKE_INSTALL_PREFIX}/${PYTHON_INSTALL_DIR}/openravepy/_openravepy_)
 
+set(METADATA "${CMAKE_CURRENT_BINARY_DIR}/METADATA")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/dist-info/METADATA.in" "${METADATA}" IMMEDIATE @ONLY)
+
 add_library(openrave_rawxml SHARED openrave_rawxml.cpp parsexml.cpp)
 
 if(OpenRAVE_USE_PYBIND11_PYTHON3_BINDINGS)
@@ -27,3 +30,4 @@ target_link_libraries(openrave_rawxml PUBLIC LibXml2::LibXml2 ${OPENRAVEPY_INT_S
 target_include_directories(openrave_rawxml PRIVATE ${OpenRAVE_INCLUDE_DIRS} ${OpenRAVE_PYTHON3_INCLUDE_DIRS})
 set_target_properties(openrave_rawxml PROPERTIES PREFIX "")
 install(TARGETS openrave_rawxml DESTINATION ${PYTHON_INSTALL_DIR})
+install(FILES ${METADATA} "${CMAKE_CURRENT_SOURCE_DIR}/dist-info/top_level.txt" DESTINATION ${PYTHON_INSTALL_DIR}/openrave_rawxml.dist-info/)
