@@ -28,6 +28,6 @@ endif()
 
 target_link_libraries(openrave_globalstatesaver PUBLIC ${OPENRAVEPY_INT_SO_FILE} ${OpenRAVE_LIBRARIES})
 target_include_directories(openrave_globalstatesaver PRIVATE ${OpenRAVE_INCLUDE_DIRS} ${OpenRAVE_PYTHON3_INCLUDE_DIRS})
-set_target_properties(openrave_globalstatesaver PROPERTIES PREFIX "")
+set_target_properties(openrave_globalstatesaver PROPERTIES PREFIX "" INSTALL_RPATH "$ORIGIN")
 install(TARGETS openrave_globalstatesaver DESTINATION ${PYTHON_INSTALL_DIR})
 install(FILES ${METADATA} "${CMAKE_CURRENT_SOURCE_DIR}/dist-info/top_level.txt" DESTINATION ${PYTHON_INSTALL_DIR}/openrave_globalstatesaver.dist-info/)
