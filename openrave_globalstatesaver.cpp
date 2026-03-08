@@ -31,8 +31,8 @@
 #endif
 //namespace py = openravepy::py;
 
-typedef int (*tRaveInitialize)(bool, int);
-typedef OpenRAVE::UserDataPtr (*tRaveGlobalState)();
+OpenRAVE::UserDataPtr RaveCreateGlobal();
+void RaveUpdateDataDirs();
 
 class GlobalStateSaver
 {
@@ -46,36 +46,59 @@ public:
     }
     OpenRAVE::UserDataPtr Init()
     {
-        //rave2 = dlmopen(LM_ID_NEWLM, "/usr/local/lib/libopenrave0.169.so", RTLD_NOW);
-        //printf("yoooo %016llx\n", rave2);
-        //tRaveInitialize pRaveInitialize = (tRaveInitialize)dlsym(rave2, "_ZN8OpenRAVE14RaveInitializeEbi");
-        //tRaveGlobalState pRaveGlobalState = (tRaveGlobalState)dlsym(rave2, "_ZN8OpenRAVE15RaveGlobalStateEv");
-        //printf("yoooo %016llx\n",pRaveInitialize);
-
-        //pRaveInitialize(true, OpenRAVE::Level_Info);
-        //printf("yoooo %016llx\n",pRaveGlobalState);
-        //OpenRAVE::UserDataPtr gs2 = pRaveGlobalState();
+        OpenRAVE::UserDataPtr gs2 = RaveCreateGlobal();
 
         gs = OpenRAVE::RaveGlobalState();
-        //OpenRAVE::RaveInitializeFromState(gs2);
-
-        void RaveUpdateDataDirs();
-        RaveUpdateDataDirs();
+        OpenRAVE::RaveInitializeFromState(gs2);
         return gs;
     }
     void Destroy()
     {
-        //if(gs) {
-        //    if(!!OpenRAVE::RaveGlobalState()) {
-        //        OpenRAVE::RaveDestroy();
-        //    }
-        //    OpenRAVE::RaveInitializeFromState(gs);
-        //    gs.reset();
-        //}
+        if(gs) {
+            if(!!OpenRAVE::RaveGlobalState()) {
+                OpenRAVE::RaveDestroy();
+            }
+            OpenRAVE::RaveInitializeFromState(gs);
+            gs.reset();
+        }
     }
 
     OpenRAVE::UserDataPtr gs;
     void* rave2;
+};
+
+class DataDirSaver
+{
+public:
+    DataDirSaver()
+    {
+        environ = openravepy::py::module_::import("os").attr("environ");
+        OPENRAVE_DATA = openravepy::py::none();
+    }
+    DataDirSaver(openravepy::py::object openraveData)
+    {
+        environ = openravepy::py::module_::import("os").attr("environ");
+        OPENRAVE_DATA = openraveData;
+    }
+    ~DataDirSaver()
+    {
+        Destroy();
+    }
+    void Init()
+    {
+        RaveUpdateDataDirs();
+    }
+    void Destroy()
+    {
+        if(!OPENRAVE_DATA || OPENRAVE_DATA.is_none()) {
+            environ.attr("pop")("OPENRAVE_DATA", openravepy::py::none());
+        } else {
+            environ["OPENRAVE_DATA"] = OPENRAVE_DATA;
+        }
+    }
+
+    openravepy::py::dict environ;
+    openravepy::py::object OPENRAVE_DATA;
 };
 
 namespace openravepy {
@@ -93,6 +116,13 @@ namespace openravepy {
                     OpenRAVE::UserDataPtr gs = OpenRAVE::RaveGlobalState();
                     return toPyUserData(gs);
                 }));
+                PYDEF(def("RaveCreateGlobal",[]{
+                    OpenRAVE::UserDataPtr gs = RaveCreateGlobal();
+                    return toPyUserData(gs);
+                }));
+                PYDEF(def("RaveUpdateDataDirs",[]{
+                    RaveUpdateDataDirs();
+                }));
 
                 py::class_<GlobalStateSaver> cGlobalStateSaver(m, "GlobalStateSaver");
                 cGlobalStateSaver.def(py::init<>());
@@ -100,6 +130,16 @@ namespace openravepy {
                     return toPyUserData(p.Init());
                 });
                 cGlobalStateSaver.def("__exit__", [](GlobalStateSaver &p, py::object p1, py::object p2, py::object p3){
+                    return p.Destroy();
+                });
+
+                py::class_<DataDirSaver> cDataDirSaver(m, "DataDirSaver");
+                cDataDirSaver.def(py::init<>());
+                cDataDirSaver.def(py::init<py::object>());
+                cDataDirSaver.def("__enter__", [](DataDirSaver &p){
+                    p.Init();
+                });
+                cDataDirSaver.def("__exit__", [](DataDirSaver &p, py::object p1, py::object p2, py::object p3){
                     return p.Destroy();
                 });
 	}
