@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 3.0)
 project(OpenRAVEGlobalStateSaver)
+set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(OpenRAVE REQUIRED)
-find_package(LibXml2 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem)
+add_definitions(-DHAVE_BOOST_FILESYSTEM)
+add_definitions(-DUSE_CRLIBM)
+#add_definitions(-DOPENRAVE_LOG4CXX)
+
+include(CheckTypeSize)
+add_subdirectory(crlibm-1.0beta4)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 execute_process(
@@ -16,7 +24,9 @@ find_file(OPENRAVEPY_INT_SO_FILE openravepy_int.so PATHS ${CMAKE_INSTALL_PREFIX}
 set(METADATA "${CMAKE_CURRENT_BINARY_DIR}/METADATA")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/dist-info/METADATA.in" "${METADATA}" IMMEDIATE @ONLY)
 
-add_library(openrave_globalstatesaver SHARED openrave_globalstatesaver.cpp)
+add_library(openrave_globalstatesaver SHARED
+  openrave_globalstatesaver.cpp libopenrave.cpp plugindatabase.cpp plugindatabase_virtual.cpp
+)
 
 if(OpenRAVE_USE_PYBIND11_PYTHON3_BINDINGS)
   find_package(pybind11 2.9.2 REQUIRED)
@@ -26,8 +36,9 @@ else()
   target_link_libraries(openrave_globalstatesaver PUBLIC Boost::python Boost::thread)
 endif()
 
-target_link_libraries(openrave_globalstatesaver PUBLIC ${OPENRAVEPY_INT_SO_FILE} ${OpenRAVE_LIBRARIES})
+target_link_libraries(openrave_globalstatesaver PUBLIC Python3::Python crlibm ${OPENRAVEPY_INT_SO_FILE} ${OpenRAVE_LIBRARIES})
 target_include_directories(openrave_globalstatesaver PRIVATE ${OpenRAVE_INCLUDE_DIRS} ${OpenRAVE_PYTHON3_INCLUDE_DIRS})
+target_include_directories(openrave_globalstatesaver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/crlibm-1.0beta4/)
 set_target_properties(openrave_globalstatesaver PROPERTIES PREFIX "" INSTALL_RPATH "$ORIGIN")
 install(TARGETS openrave_globalstatesaver DESTINATION ${PYTHON_INSTALL_DIR})
 install(FILES ${METADATA} "${CMAKE_CURRENT_SOURCE_DIR}/dist-info/top_level.txt" DESTINATION ${PYTHON_INSTALL_DIR}/openrave_globalstatesaver.dist-info/)

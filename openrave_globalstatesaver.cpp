@@ -20,10 +20,7 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
-typedef boost::shared_ptr<OpenRAVE::Readable> ReadablePtr;
-
-std::vector<OpenRAVE::UserDataPtr> vRegisteredReaders;
+#include <dlfcn.h>
 
 #include <openravepy/bindings.h>
 #include <openravepy/openravepy_int.h>
@@ -33,6 +30,9 @@ std::vector<OpenRAVE::UserDataPtr> vRegisteredReaders;
 #define PYDEF(fndef) py::fndef
 #endif
 //namespace py = openravepy::py;
+
+typedef int (*tRaveInitialize)(bool, int);
+typedef OpenRAVE::UserDataPtr (*tRaveGlobalState)();
 
 class GlobalStateSaver
 {
@@ -46,22 +46,36 @@ public:
     }
     OpenRAVE::UserDataPtr Init()
     {
+        //rave2 = dlmopen(LM_ID_NEWLM, "/usr/local/lib/libopenrave0.169.so", RTLD_NOW);
+        //printf("yoooo %016llx\n", rave2);
+        //tRaveInitialize pRaveInitialize = (tRaveInitialize)dlsym(rave2, "_ZN8OpenRAVE14RaveInitializeEbi");
+        //tRaveGlobalState pRaveGlobalState = (tRaveGlobalState)dlsym(rave2, "_ZN8OpenRAVE15RaveGlobalStateEv");
+        //printf("yoooo %016llx\n",pRaveInitialize);
+
+        //pRaveInitialize(true, OpenRAVE::Level_Info);
+        //printf("yoooo %016llx\n",pRaveGlobalState);
+        //OpenRAVE::UserDataPtr gs2 = pRaveGlobalState();
+
         gs = OpenRAVE::RaveGlobalState();
-        OpenRAVE::RaveInitializeFromState(OpenRAVE::UserDataPtr());
+        //OpenRAVE::RaveInitializeFromState(gs2);
+
+        void RaveUpdateDataDirs();
+        RaveUpdateDataDirs();
         return gs;
     }
     void Destroy()
     {
-        if(gs) {
-            if(!!OpenRAVE::RaveGlobalState()) {
-                OpenRAVE::RaveDestroy();
-            }
-            OpenRAVE::RaveInitializeFromState(gs);
-            gs.reset();
-        }
+        //if(gs) {
+        //    if(!!OpenRAVE::RaveGlobalState()) {
+        //        OpenRAVE::RaveDestroy();
+        //    }
+        //    OpenRAVE::RaveInitializeFromState(gs);
+        //    gs.reset();
+        //}
     }
 
     OpenRAVE::UserDataPtr gs;
+    void* rave2;
 };
 
 namespace openravepy {
