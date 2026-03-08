@@ -56,7 +56,7 @@ public:
     {
         if(gs) {
             if(!!OpenRAVE::RaveGlobalState()) {
-                OpenRAVE::RaveDestroy();
+                // OpenRAVE::RaveDestroy();
             }
             OpenRAVE::RaveInitializeFromState(gs);
             gs.reset();
