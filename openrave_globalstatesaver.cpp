@@ -24,9 +24,13 @@
 
 #include <openravepy/bindings.h>
 #include <openravepy/openravepy_int.h>
+
 #ifdef USE_PYBIND11_PYTHON_BINDINGS
+#include <pybind11/typing.h>
+#define OPTIONAL_STR openravepy::py::typing::Optional<openravepy::py::str>
 #define PYDEF(fndef) m.fndef
 #else
+#define OPTIONAL_STR openravepy::py::object
 #define PYDEF(fndef) py::fndef
 #endif
 //namespace py = openravepy::py;
@@ -73,7 +77,7 @@ public:
     DataDirSaver(): DataDirSaver(openravepy::py::none())
     {
     }
-    DataDirSaver(openravepy::py::object openraveData)
+    DataDirSaver(OPTIONAL_STR openraveData)
     {
         environ = openravepy::py::module_::import("os").attr("environ");
         if(environ.contains("OPENRAVE_DATA")) {
@@ -106,6 +110,7 @@ public:
 };
 
 namespace openravepy {
+        using namespace pybind11::literals;
         py::object toPyUserData(OpenRAVE::UserDataPtr p);
 
 	//BOOST_PYTHON_MODULE(openrave_globalstatesaver)
@@ -139,7 +144,7 @@ namespace openravepy {
 
                 py::class_<DataDirSaver, std::shared_ptr<DataDirSaver>> cDataDirSaver(m, "DataDirSaver");
                 cDataDirSaver.def(py::init<>());
-                cDataDirSaver.def(py::init<py::object>());
+                cDataDirSaver.def(py::init<OPTIONAL_STR>(), "newOpenRaveData"_a);
                 cDataDirSaver.def("__enter__", [](DataDirSaver &p){
                     p.Init();
                 });
