@@ -11,10 +11,12 @@ namespace OpenRAVE
 #define RaveGlobalState RaveGlobalStateLOCAL
 #define RaveInitialize RaveInitializeLOCAL
 #define RaveInitializeFromState RaveInitializeFromStateLOCAL
+#define RaveDestroy RaveDestroyLOCAL
 #include "../openrave/src/libopenrave/libopenrave.cpp"
 #undef RaveGlobalState
 #undef RaveInitialize
 #undef RaveInitializeFromState
+#undef RaveDestroy
 
 class __attribute__((visibility("hidden"))) RaveGlobal_UpdateDataDirs: public OpenRAVE::RaveGlobal
 {
