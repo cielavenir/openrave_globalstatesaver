@@ -4,13 +4,24 @@ set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(OpenRAVE REQUIRED)
+
+add_definitions(-fvisibility=hidden)
+
+### set up some flags to configure ABI ###
+# -DOPENRAVE_LOG4CXX=1 is set from openrave/config.h
+
+# set up -DHAVE_BOOST_FILESYSTEM
 find_package(Boost REQUIRED COMPONENTS filesystem)
 add_definitions(-DHAVE_BOOST_FILESYSTEM)
-add_definitions(-DUSE_CRLIBM)
-#add_definitions(-DOPENRAVE_LOG4CXX)
 
+# set up -DUSE_CRLIBM
+set(OPT_ACCURATEMATH ON)  # for not assume OPT_ACCURATEMATH=OFF is not used
+if( OPT_ACCURATEMATH AND NOT MSVC AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES aarch64 )
 include(CheckTypeSize)
 add_subdirectory(crlibm-1.0beta4)
+endif()
+
+### set up flags end ###
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 execute_process(
