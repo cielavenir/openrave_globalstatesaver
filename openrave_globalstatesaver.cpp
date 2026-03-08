@@ -128,7 +128,7 @@ namespace openravepy {
                     RaveUpdateDataDirs();
                 }));
 
-                py::class_<GlobalStateSaver> cGlobalStateSaver(m, "GlobalStateSaver");
+                py::class_<GlobalStateSaver, std::shared_ptr<GlobalStateSaver>> cGlobalStateSaver(m, "GlobalStateSaver");
                 cGlobalStateSaver.def(py::init<>());
                 cGlobalStateSaver.def("__enter__", [](GlobalStateSaver &p){
                     return toPyUserData(p.Init());
