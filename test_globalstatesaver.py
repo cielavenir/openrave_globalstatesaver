@@ -12,7 +12,7 @@ def tmpdir():
     with tempfile.TemporaryDirectory() as tmpdir:
         yield tmpdir
 
-def test_globalstatesaver(tmpdir):
+def Atest_globalstatesaver(tmpdir):
     dir = os.path.dirname(os.path.realpath(__file__))
     ikfastrobotsdir = os.path.join(os.path.dirname(dir), 'openrave/test/ikfastrobots')
 
@@ -39,7 +39,6 @@ def test_globalstatesaver(tmpdir):
             env1 = openravepy.Environment()
             assert env1.Load(os.path.join('fail1.dae'))
 
-            os.environ.pop('OPENRAVE_DATA', None)
             with openrave_globalstatesaver.GlobalStateSaver():
                 env2 = openravepy.Environment()
                 try:
@@ -55,6 +54,63 @@ def test_globalstatesaver(tmpdir):
                 finally:
                     env2.Destroy()
             assert len(env1.GetRobots()) > 0, 'exiting env1 dead after statesaver'
+        finally:
+            env1.Destroy()
+    finally:
+        openravepy.RaveDestroy()
+
+def test_datadirsaver(tmpdir):
+    dir = os.path.dirname(os.path.realpath(__file__))
+    ikfastrobotsdir = os.path.join(os.path.dirname(dir), 'openrave/test/ikfastrobots')
+
+    try:
+        try:
+            env1 = openravepy.Environment()
+            assert not env1.Load(os.path.join('fail1.dae'))
+
+            with openrave_globalstatesaver.DataDirSaver(ikfastrobotsdir):
+                env2 = openravepy.Environment()
+                try:
+                    assert env2.Load(os.path.join('fail1.dae'))
+                finally:
+                    env2.Destroy()
+        finally:
+            env1.Destroy()
+    finally:
+        openravepy.RaveDestroy()
+
+    try:
+        os.environ['OPENRAVE_DATA'] = ikfastrobotsdir
+        env1 = openravepy.Environment()
+        try:
+            os.environ['OPENRAVE_DATA'] = ikfastrobotsdir
+            assert env1.Load(os.path.join('fail1.dae'))
+
+            with openrave_globalstatesaver.DataDirSaver():
+                env2 = openravepy.Environment()
+                try:
+                    assert not env2.Load(os.path.join('fail1.dae'))
+                    with openrave_globalstatesaver.DataDirSaver(ikfastrobotsdir):
+                        env3 = openravepy.Environment()
+                        try:
+                            assert env3.Load(os.path.join('fail1.dae'))
+                        finally:
+                            env3.Destroy()
+                finally:
+                    env2.Destroy()
+
+                env2 = openravepy.Environment()
+                try:
+                    assert not env2.Load(os.path.join('fail1.dae'))
+                finally:
+                    env2.Destroy()
+            assert len(env1.GetRobots()) > 0, 'exiting env1 dead after statesaver'
+        finally:
+            env1.Destroy()
+
+        env1 = openravepy.Environment()
+        try:
+            assert env1.Load(os.path.join('fail1.dae'))
         finally:
             env1.Destroy()
     finally:

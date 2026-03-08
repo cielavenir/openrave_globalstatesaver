@@ -70,19 +70,21 @@ public:
 class DataDirSaver
 {
 public:
-    DataDirSaver()
+    DataDirSaver(): DataDirSaver(openravepy::py::none())
     {
-        environ = openravepy::py::module_::import("os").attr("environ");
-        OPENRAVE_DATA = openravepy::py::none();
     }
     DataDirSaver(openravepy::py::object openraveData)
     {
         environ = openravepy::py::module_::import("os").attr("environ");
-        OPENRAVE_DATA = openraveData;
-    }
-    ~DataDirSaver()
-    {
-        Destroy();
+        if(environ.contains("OPENRAVE_DATA")) {
+            OPENRAVE_DATA = environ["OPENRAVE_DATA"];
+        }
+
+        if(!openraveData || openraveData.is_none()) {
+            environ.attr("pop")("OPENRAVE_DATA", openravepy::py::none());
+        } else {
+            environ["OPENRAVE_DATA"] = openraveData;
+        }
     }
     void Init()
     {
@@ -94,10 +96,12 @@ public:
             environ.attr("pop")("OPENRAVE_DATA", openravepy::py::none());
         } else {
             environ["OPENRAVE_DATA"] = OPENRAVE_DATA;
+
         }
+        RaveUpdateDataDirs();
     }
 
-    openravepy::py::dict environ;
+    openravepy::py::object environ;
     openravepy::py::object OPENRAVE_DATA;
 };
 
@@ -130,17 +134,17 @@ namespace openravepy {
                     return toPyUserData(p.Init());
                 });
                 cGlobalStateSaver.def("__exit__", [](GlobalStateSaver &p, py::object p1, py::object p2, py::object p3){
-                    return p.Destroy();
+                    p.Destroy();
                 });
 
-                py::class_<DataDirSaver> cDataDirSaver(m, "DataDirSaver");
+                py::class_<DataDirSaver, std::shared_ptr<DataDirSaver>> cDataDirSaver(m, "DataDirSaver");
                 cDataDirSaver.def(py::init<>());
                 cDataDirSaver.def(py::init<py::object>());
                 cDataDirSaver.def("__enter__", [](DataDirSaver &p){
                     p.Init();
                 });
                 cDataDirSaver.def("__exit__", [](DataDirSaver &p, py::object p1, py::object p2, py::object p3){
-                    return p.Destroy();
+                    p.Destroy();
                 });
 	}
 }

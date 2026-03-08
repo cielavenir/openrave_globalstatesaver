@@ -26,9 +26,7 @@ public:
 __attribute__((visibility("default"))) void RaveUpdateDataDirs()
 {
     OpenRAVE::UserDataPtr gsuser = RaveGlobalState();
-printf("%016llx\n", gsuser.get());
     boost::shared_ptr<RaveGlobal> gs = boost::dynamic_pointer_cast<RaveGlobal>(gsuser);
-printf("%016llx\n", gs.get());
     ((RaveGlobal_UpdateDataDirs*)gs.get())->_UpdateDataDirs();
 }
 
