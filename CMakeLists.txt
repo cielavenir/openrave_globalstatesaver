@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 project(OpenRAVEGlobalStateSaver)
-set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 find_package(OpenRAVE REQUIRED)
 
@@ -50,6 +52,6 @@ endif()
 target_link_libraries(openrave_globalstatesaver PUBLIC Python3::Python crlibm ${OPENRAVEPY_INT_SO_FILE} ${OpenRAVE_LIBRARIES})
 target_include_directories(openrave_globalstatesaver PRIVATE ${OpenRAVE_INCLUDE_DIRS} ${OpenRAVE_PYTHON3_INCLUDE_DIRS})
 target_include_directories(openrave_globalstatesaver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/crlibm-1.0beta4/)
-set_target_properties(openrave_globalstatesaver PROPERTIES PREFIX "" INSTALL_RPATH "$ORIGIN/openravepy/_openravepy_")
+set_target_properties(openrave_globalstatesaver PROPERTIES PREFIX "")
 install(TARGETS openrave_globalstatesaver DESTINATION ${PYTHON_INSTALL_DIR})
 install(FILES ${METADATA} "${CMAKE_CURRENT_SOURCE_DIR}/dist-info/top_level.txt" DESTINATION ${PYTHON_INSTALL_DIR}/openrave_globalstatesaver.dist-info/)
