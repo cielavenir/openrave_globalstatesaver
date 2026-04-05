@@ -28,6 +28,10 @@ public:
 __attribute__((visibility("default"))) void RaveUpdateDataDirs()
 {
     OpenRAVE::UserDataPtr gsuser = RaveGlobalState();
+    if(!gsuser) {
+        // RaveInitialize is not called yet, which means current OPENRAVE_DATA could be used without "updating" datadirs.
+        return;
+    }
     boost::shared_ptr<RaveGlobal> gs = boost::dynamic_pointer_cast<RaveGlobal>(gsuser);
     ((RaveGlobal_UpdateDataDirs*)gs.get())->_UpdateDataDirs();
 }
